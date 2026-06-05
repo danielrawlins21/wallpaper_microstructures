@@ -23,6 +23,8 @@ To check the results:
 Python libraries used:
 * **requirements.txt**
 
+On Windows, `scikit-geometry` needs to be installed separately, for example with `conda install -c conda-forge scikit-geometry`, or by running the project inside WSL/Linux. The rest of the dependencies can still be installed with `pip install -r requirements.txt`.
+
 ### Support
 f.hendriks@tue.nl
 
