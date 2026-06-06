@@ -21,9 +21,22 @@ To check the results:
 * **check_output_files.ipynb**: prints overviews of the contents of all the generated files which will be combined in combine_results.ipynb.
 
 Python libraries used:
-* **requirements.txt**
+* **environment.yml**: recommended conda-forge environment for geometry generation.
+* **requirements.txt**: pip dependencies for environments where `scikit-geometry` is installed separately.
 
-On Windows, `scikit-geometry` needs to be installed separately, for example with `conda install -c conda-forge scikit-geometry`, or by running the project inside WSL/Linux. The rest of the dependencies can still be installed with `pip install -r requirements.txt`.
+### Installation notes
+
+The geometry generator depends on `scikit-geometry` through `import skgeom as sg`, especially for `sg.skeleton.create_interior_straight_skeleton`. The most reliable installation route is conda-forge:
+
+```bash
+conda env create -f environment.yml
+conda activate wallpaper-microstructures
+python tests/smoke_skgeom.py
+```
+
+Keep `numpy<2` when using `scikit-geometry==0.1.2`. Manual `skgeom` builds can import successfully but still fail at the straight-skeleton binding with a `pybind11` argument-conversion error. Run `python tests/smoke_skgeom.py` before running `data_myMeshes.py`.
+
+On Windows, prefer the conda-forge environment above or run the project inside WSL/Linux. If `scikit-geometry` is installed separately, the remaining Python dependencies can be installed with `pip install -r requirements.txt`.
 
 ### Support
 f.hendriks@tue.nl
