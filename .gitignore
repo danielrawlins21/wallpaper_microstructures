@@ -6,3 +6,4 @@ __pycache__/*
 *.docx
 SFConflict/*
 periodicity_test/*
+.venv/*
