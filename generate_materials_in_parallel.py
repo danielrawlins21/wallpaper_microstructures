@@ -55,14 +55,17 @@ def print_options():
             print('  -', shape)
 
 
-def build_args(n=60):
+def build_args(n=60, groups=None, shape=None):
     args1 = []
     args2 = []
-    for group in wallpaper_groups:
+    groups = groups or wallpaper_groups.keys()
+    for group in groups:
         print(group)
         args1.extend([group]*n)
         shapes = wallpaper_groups[group]['fundamental domain parameters'].keys()
         shapes = list(shapes)
+        if shape is not None:
+            shapes = [shape]
         for i in range(n):
             args2.append(shapes[i % len(shapes)])  # cycle through shapes
 
@@ -77,20 +80,79 @@ def parse_args():
         default=data_dir,
         help='Directory where generated geometry folders will be saved.',
     )
+    parser.add_argument(
+        '-g',
+        '--group',
+        choices=sorted(wallpaper_groups),
+        help='Generate only this wallpaper group. By default all groups are generated.',
+    )
+    parser.add_argument(
+        '-s',
+        '--shape',
+        help='Generate only this shape. Requires --group because valid shapes depend on the group.',
+    )
+    parser.add_argument(
+        '-n',
+        '--num-per-group',
+        type=int,
+        default=60,
+        help='Number of geometries to generate per selected group.',
+    )
+    parser.add_argument(
+        '-w',
+        '--max-workers',
+        type=int,
+        default=6,
+        help='Maximum number of parallel worker processes.',
+    )
+    parser.add_argument(
+        '-f',
+        '--figures',
+        type=int,
+        choices=[0, 1, 2],
+        default=figures,
+        help='How many figures to save: 0 none, 1 important figures, 2 all debug figures.',
+    )
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Print verbose output while generating geometries.',
+    )
     return parser.parse_args()
 
 
+def validate_args(args):
+    if args.num_per_group < 1:
+        raise ValueError('--num-per-group must be at least 1')
+    if args.max_workers < 1:
+        raise ValueError('--max-workers must be at least 1')
+    if args.shape is not None and args.group is None:
+        raise ValueError('--shape requires --group because valid shapes depend on the group')
+    if args.shape is not None:
+        shapes = wallpaper_groups[args.group]['fundamental domain parameters']
+        if args.shape not in shapes:
+            valid_shapes = ', '.join(shapes)
+            raise ValueError(f'{args.shape!r} is not valid for group {args.group!r}. Valid shapes: {valid_shapes}')
+
+
 def main():
-    global data_dir
+    global data_dir, figures, verbose
 
     args = parse_args()
+    validate_args(args)
+
     data_dir = args.data_dir
+    figures = args.figures
+    verbose = args.verbose
     os.makedirs(data_dir, exist_ok=True)
 
-    print_options()
-    args1, args2 = build_args()
+    groups = [args.group] if args.group is not None else None
+    if groups is None:
+        print_options()
+    args1, args2 = build_args(n=args.num_per_group, groups=groups, shape=args.shape)
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=args.max_workers) as executor:
         for results in executor.map(_generate_material_geometry, args1, args2):
             pass
 
