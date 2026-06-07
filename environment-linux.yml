@@ -1,0 +1,13 @@
+name: wallpaper-fem-linux
+channels:
+  - conda-forge
+dependencies:
+  # scikit-geometry 0.1.2 is easiest to use on Linux with the old
+  # conda-forge Python 3.9 build and matching CGAL/Boost stack.
+  - python=3.9.7
+  - scikit-geometry=0.1.2
+  - libglu
+  - pip
+  - pip:
+      - -r requirements.txt
+      - gmsh==4.12.2
