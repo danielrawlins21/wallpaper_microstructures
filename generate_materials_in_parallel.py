@@ -3,6 +3,7 @@ import argparse
 import concurrent.futures
 import os
 import datetime
+import json
 
 from data_myMeshes import generate_material_geometry
 from helper_funcs import wallpaper_groups
@@ -19,9 +20,10 @@ verbose = False
 # This function will be called multiple times in parallel
 # It will create a new folder for each geometry and save the generated material there
 def _generate_material_geometry(group, shape):
+    last_result = None
 
     # keep trying until succesful
-    for i in range(100):
+    for attempt in range(1, 101):
         # Create new folder for figures
         date_time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '-')
         name = f'{group}_{shape}_{date_time_string}'
@@ -39,13 +41,40 @@ def _generate_material_geometry(group, shape):
             # generate new material
             generate_material_geometry(group, shape, verbose=verbose, figures=figures, save_dir=save_dir)
         except Exception as e:
+            error = repr(e)
             with(open(new_path(os.path.join(save_dir, 'error.txt')), 'w')) as f:
-                f.write(repr(e))
-            print(repr(e))
+                f.write(error)
+            print(error)
+            last_result = {
+                'group': group,
+                'shape': shape,
+                'status': 'failed_attempt',
+                'attempt': attempt,
+                'save_dir': save_dir,
+                'error': error,
+            }
         else:   # if no exception -> successful! -> break loop
-            break
+            return {
+                'group': group,
+                'shape': shape,
+                'status': 'success',
+                'attempt': attempt,
+                'save_dir': save_dir,
+                'error': None,
+            }
     else:  # no break -> failed 100 times
         print(f'Failed to generate {group} {shape} 100 times!')
+        if last_result is None:
+            last_result = {
+                'group': group,
+                'shape': shape,
+                'status': 'failed',
+                'attempt': 100,
+                'save_dir': None,
+                'error': 'Failed before creating an attempt folder',
+            }
+        last_result['status'] = 'failed'
+        return last_result
 
 # %%
 def print_options():
@@ -136,6 +165,21 @@ def validate_args(args):
             raise ValueError(f'{args.shape!r} is not valid for group {args.group!r}. Valid shapes: {valid_shapes}')
 
 
+def save_summary(results):
+    summary = {
+        'created_at': datetime.datetime.now().isoformat(),
+        'data_dir': data_dir,
+        'total': len(results),
+        'successes': sum(result['status'] == 'success' for result in results),
+        'failures': sum(result['status'] != 'success' for result in results),
+        'results': results,
+    }
+    summary_path = new_path(os.path.join(data_dir, 'generation_summary.json'))
+    with open(summary_path, 'w') as f:
+        json.dump(summary, f, indent=2)
+    return summary, summary_path
+
+
 def main():
     global data_dir, figures, verbose
 
@@ -152,9 +196,21 @@ def main():
         print_options()
     args1, args2 = build_args(n=args.num_per_group, groups=groups, shape=args.shape)
 
+    results = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.max_workers) as executor:
-        for results in executor.map(_generate_material_geometry, args1, args2):
-            pass
+        for result in executor.map(_generate_material_geometry, args1, args2):
+            results.append(result)
+
+    summary, summary_path = save_summary(results)
+    print('Generation summary:')
+    print(f"  Successes: {summary['successes']}/{summary['total']}")
+    print(f"  Failures: {summary['failures']}/{summary['total']}")
+    print(f'  Summary file: {summary_path}')
+    if summary['failures']:
+        print('Failed geometries:')
+        for result in results:
+            if result['status'] != 'success':
+                print(f"  {result['group']} {result['shape']} after {result['attempt']} attempts: {result['error']}")
 
     error_dir = os.path.join(data_dir, 'error_geometries')
     os.makedirs(error_dir, exist_ok=True)
