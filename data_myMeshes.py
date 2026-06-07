@@ -1727,7 +1727,7 @@ def generate_material_geometry(group, shape, verbose=False, figures=1, save_dir=
             for i, temp in enumerate(proto_combis2):
                 for j, ind_temp in enumerate(temp):
                     if ind_temp in equiv_proto_edges[:, 1]:
-                        proto_combis2[i][j] = equiv_proto_edges[np.where(equiv_proto_edges[:, 1] == ind_temp), 0]
+                        proto_combis2[i][j] = equiv_proto_edges[np.where(equiv_proto_edges[:, 1] == ind_temp)[0][0], 0]
 
         proto_combis = np.stack((proto_combis1, proto_combis2), axis=1)
         inds = np.argsort(proto_combis[:, :, 0], axis=1)
@@ -3044,15 +3044,16 @@ if __name__ == '__main__':
     argumentList = sys.argv[1:]
 
     # Options
-    options = "hg:s:v:f:"
+    options = "hg:s:v:f:r:"
 
     # Long options
-    long_options = ["help", "group=", "shape=", "verbose", "figures"]
+    long_options = ["help", "group=", "shape=", "verbose", "figures", "retries="]
 
     group_given = False
     shape_given = False
     verbose = False
     figures = 1
+    retries = 1
     try:
         # Parsing argument
         arguments, values = getopt.getopt(argumentList, options, long_options)
@@ -3070,6 +3071,7 @@ Options:
 -s, --shape: Bravais lattice type (determines shape of the unit cell), ['square', 'hexagonal', 'oblique', 'rectangular', 'rhombic'], (not all options are available for all groups, and cm has 'hexagonal1' and 'hexagonal2'.)
 -v, --verbose: how much output to print (0: only the most important info, 1: lots of info)
 -f, --figures: how many figures to save (0: None, 1: only the most important, 2: all)
+-r, --retries: how many random geometries to try before failing (default: 1)
 -h, --help: print help
     ''')
                 sys.exit()
@@ -3095,6 +3097,11 @@ Options:
                 if figures not in [0,1,2]:
                     raise ValueError(f'{figures} is not an acceptable value for figures')
 
+            elif currentArgument in ("-r", "--retries"):
+                retries = int(currentValue)
+                if retries < 1:
+                    raise ValueError(f'{retries} is not an acceptable value for retries')
+
     except getopt.error as err:
         # output error, and return with an error code
         print (str(err))
@@ -3114,20 +3121,31 @@ Options:
     if not os.path.isdir('data'):
         os.mkdir('data')
 
-    # Create new folder for figures
-    date_time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '-')
-    name = f'{group}_{shape}_{date_time_string}'
+    for attempt in range(retries):
+        # Create new folder for figures
+        date_time_string = str(datetime.datetime.now()).replace(' ', '_').replace(':', '-')
+        name = f'{group}_{shape}_{date_time_string}'
 
-    save_dir = hf.new_path(os.path.join('data', name), always_number=False)
-    name = os.path.split(save_dir)[-1]
-    os.mkdir(save_dir)
+        save_dir = hf.new_path(os.path.join('data', name), always_number=False)
+        name = os.path.split(save_dir)[-1]
+        os.mkdir(save_dir)
 
-    if rng_state_path is not None:
-        with(open(hf.new_path(os.path.join(save_dir, 'based_on.txt')), 'w')) as f:
-            f.write(rng_state_path)
+        if rng_state_path is not None:
+            with(open(hf.new_path(os.path.join(save_dir, 'based_on.txt')), 'w')) as f:
+                f.write(rng_state_path)
 
-    print('Name:', name)
-    print('Path:', save_dir)
+        print('Name:', name)
+        print('Path:', save_dir)
 
-    # generate new material
-    generate_material_geometry(group, shape, verbose=verbose, figures=figures, save_dir=save_dir, rng_state_path=rng_state_path)
+        try:
+            # generate new material
+            generate_material_geometry(group, shape, verbose=verbose, figures=figures, save_dir=save_dir, rng_state_path=rng_state_path)
+        except Exception as e:
+            with(open(hf.new_path(os.path.join(save_dir, 'error.txt')), 'w')) as f:
+                f.write(repr(e))
+            if attempt == retries - 1:
+                raise
+            print(f'Attempt {attempt + 1}/{retries} failed: {repr(e)}')
+            print('Trying again...')
+        else:
+            break
