@@ -10,6 +10,7 @@ import datetime
 import time
 import sys
 import getopt
+import shutil
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -2521,7 +2522,18 @@ def generate_material_geometry(group, shape, verbose=False, figures=1, save_dir=
 
     file2 = hf.new_path(os.path.join(save_dir, f'{name}.msh'))
     # try:
-    subprocess.run(['gmsh', file, '-o', file2, '-2', '-clmax', str(CLMAX)], check=True, timeout=100)
+    gmsh_env = None
+    gmsh_executable = shutil.which('gmsh')
+    if gmsh_executable is None:
+        gmsh_in_env = os.path.join(sys.prefix, 'bin', 'gmsh')
+        if os.path.exists(gmsh_in_env):
+            gmsh_executable = gmsh_in_env
+            gmsh_env = os.environ.copy()
+            gmsh_env['PATH'] = os.path.dirname(gmsh_in_env) + os.pathsep + gmsh_env.get('PATH', '')
+        else:
+            gmsh_executable = 'gmsh'
+
+    subprocess.run([gmsh_executable, file, '-o', file2, '-2', '-clmax', str(CLMAX)], check=True, timeout=100, env=gmsh_env)
 
     # %% [markdown]
 
