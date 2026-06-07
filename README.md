@@ -25,6 +25,7 @@ Python libraries used:
 * **environment-linux.yml**: recommended Linux/WSL conda-forge + pip environment for geometry generation.
 * **requirements.txt**: pip dependencies for environments where `scikit-geometry` is installed separately.
 
+
 ### Installation notes
 
 The geometry generator depends on `scikit-geometry` through `import skgeom as sg`, especially for `sg.skeleton.create_interior_straight_skeleton`. The most reliable installation route is conda-forge. On Windows, the `scikit-geometry==0.1.2` conda-forge builds are not available for Python 3.10, so `environment.yml` uses Python 3.9.
@@ -47,6 +48,19 @@ source .venv/bin/activate
 python tests/smoke_skgeom.py
 python data_myMeshes.py -g p1 -s square -v 0 -f 0 -r 100
 ```
+
+
+### Parallel generation
+
+By default, `generate_materials_in_parallel.py` generates geometries for all wallpaper groups, with 60 geometries per group and 6 worker processes. Generated folders are saved under `data/dataset1/generated_geometries`.
+
+For focused tests, the parallel generator can be restricted from the command line:
+
+```bash
+python generate_materials_in_parallel.py --group p1 --shape square --num-per-group 1 --max-workers 1 --figures 1
+```
+
+Use `python generate_materials_in_parallel.py --help` to see all available options, including output directory, figures, worker count, and verbose mode.
 
 ### Support
 f.hendriks@tue.nl
