@@ -1,4 +1,5 @@
 # %%
+import argparse
 import concurrent.futures
 import os
 import datetime
@@ -9,10 +10,7 @@ from helper_funcs import new_path
 
 # directory to save the generated materials
 # if it does not exist, it will be created
-data_dir = 'data'
-
-if not os.path.isdir(data_dir):
-    os.mkdir(data_dir)
+data_dir = os.path.join('data', 'dataset1', 'generated_geometries')
 
 figures = 1
 verbose = False
@@ -50,36 +48,54 @@ def _generate_material_geometry(group, shape):
         print(f'Failed to generate {group} {shape} 100 times!')
 
 # %%
-# Print all options
-for group in wallpaper_groups:
-    print(group)
-    for shape in wallpaper_groups[group]['fundamental domain parameters']:
-        print('  -', shape)
+def print_options():
+    for group in wallpaper_groups:
+        print(group)
+        for shape in wallpaper_groups[group]['fundamental domain parameters']:
+            print('  -', shape)
+
+
+def build_args(n=60):
+    args1 = []
+    args2 = []
+    for group in wallpaper_groups:
+        print(group)
+        args1.extend([group]*n)
+        shapes = wallpaper_groups[group]['fundamental domain parameters'].keys()
+        shapes = list(shapes)
+        for i in range(n):
+            args2.append(shapes[i % len(shapes)])  # cycle through shapes
+
+    assert len(args1) == len(args2), 'Length of args1 and args2 should be the same'
+    return args1, args2
 
 # %%
-# Define the arguments to pass to the function
-args1 = []
-args2 = []
-n = 60
-for group in wallpaper_groups:
-    print(group)
-    args1.extend([group]*n)
-    shapes = wallpaper_groups[group]['fundamental domain parameters'].keys()
-    shapes = list(shapes)
-    for i in range(n):
-        args2.append(shapes[i % len(shapes)])  # cycle through shapes
+def parse_args():
+    parser = argparse.ArgumentParser(description='Generate material geometries in parallel.')
+    parser.add_argument(
+        '--data-dir',
+        default=data_dir,
+        help='Directory where generated geometry folders will be saved.',
+    )
+    return parser.parse_args()
 
-assert len(args1) == len(args2), 'Length of args1 and args2 should be the same'
 
-# %%
 def main():
+    global data_dir
+
+    args = parse_args()
+    data_dir = args.data_dir
+    os.makedirs(data_dir, exist_ok=True)
+
+    print_options()
+    args1, args2 = build_args()
+
     with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
         for results in executor.map(_generate_material_geometry, args1, args2):
             pass
 
     error_dir = os.path.join(data_dir, 'error_geometries')
-    if not os.path.exists(error_dir):
-        os.mkdir(error_dir)
+    os.makedirs(error_dir, exist_ok=True)
 
     # move all folders with an error_00.txt file to error_geometries folder
     print('Failed:')
