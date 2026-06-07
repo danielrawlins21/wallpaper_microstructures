@@ -21,7 +21,8 @@ To check the results:
 * **check_output_files.ipynb**: prints overviews of the contents of all the generated files which will be combined in combine_results.ipynb.
 
 Python libraries used:
-* **environment.yml**: recommended conda-forge environment for geometry generation.
+* **environment.yml**: recommended Windows conda-forge environment for geometry generation.
+* **environment-linux.yml**: recommended Linux/WSL conda-forge + pip environment for geometry generation.
 * **requirements.txt**: pip dependencies for environments where `scikit-geometry` is installed separately.
 
 ### Installation notes
@@ -37,6 +38,15 @@ python tests/smoke_skgeom.py
 Keep `numpy<2` when using `scikit-geometry==0.1.2`. Manual `skgeom` builds can import successfully but still fail at the straight-skeleton binding with a `pybind11` argument-conversion error. Run `python tests/smoke_skgeom.py` before running `data_myMeshes.py`.
 
 On Windows, prefer the conda-forge environment above or run the project inside WSL/Linux. If `scikit-geometry` is installed separately, the remaining Python dependencies can be installed with `pip install -r requirements.txt`.
+
+On Linux/WSL, `scikit-geometry` and `gmsh` are easiest to keep compatible by creating the environment from `environment-linux.yml`. To keep the local prompt as `(.venv)`, create it at the project `.venv` prefix:
+
+```bash
+micromamba create -y -p ./.venv -f environment-linux.yml
+source .venv/bin/activate
+python tests/smoke_skgeom.py
+python data_myMeshes.py -g p1 -s square -v 0 -f 0 -r 100
+```
 
 ### Support
 f.hendriks@tue.nl
