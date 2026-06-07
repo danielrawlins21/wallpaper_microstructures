@@ -26,7 +26,7 @@ Python libraries used:
 
 ### Installation notes
 
-The geometry generator depends on `scikit-geometry` through `import skgeom as sg`, especially for `sg.skeleton.create_interior_straight_skeleton`. The most reliable installation route is conda-forge:
+The geometry generator depends on `scikit-geometry` through `import skgeom as sg`, especially for `sg.skeleton.create_interior_straight_skeleton`. The most reliable installation route is conda-forge. On Windows, the `scikit-geometry==0.1.2` conda-forge builds are not available for Python 3.10, so `environment.yml` uses Python 3.9.
 
 ```bash
 conda env create -f environment.yml
