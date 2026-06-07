@@ -30,7 +30,7 @@ The geometry generator depends on `scikit-geometry` through `import skgeom as sg
 
 ```bash
 conda env create -f environment.yml
-conda activate wallpaper-microstructures
+conda activate wallpaper-fem
 python tests/smoke_skgeom.py
 ```
 
