@@ -31,10 +31,10 @@ def _generate_material_geometry(group, shape):
         save_dir = new_path(os.path.join(data_dir, name), always_number=False)
         # safely create new folder
         while(True):
-            if not os.path.exists(save_dir):
-                os.mkdir(save_dir)
+            try:
+                os.makedirs(save_dir, exist_ok=False)
                 break
-            else:
+            except FileExistsError:
                 save_dir = new_path(os.path.join(data_dir, name), always_number=False)
 
         try:
