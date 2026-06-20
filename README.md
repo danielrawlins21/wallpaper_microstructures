@@ -78,6 +78,30 @@ The cost is not uniform across groups: higher-symmetry groups need more retries 
 
 Runtime scales roughly linearly with the number of geometries and inversely with the number of workers, so you can estimate smaller or larger runs accordingly. For a quick check, restrict the run (e.g. `--num-per-group 1 --max-workers 1`), which finishes in seconds.
 
+### Validating a generation run
+
+`validate_generation.py` audits an existing generation directory and writes a documented report. It is **read-only**: it never generates, moves, or deletes geometries, so it is safe to run at any time.
+
+```bash
+python validate_generation.py --data-dir data/batch_dataset
+```
+
+It inspects the directory and reports:
+
+* **Integrity of the successful geometries** — checks that every top-level folder contains all the files a complete generation produces (`.geo`, `.msh`, `_fd.pkl`, `.pkl`, `.mat`, `info.txt`), and flags any that are missing artifacts or contain an `error.txt`.
+* **Failed attempts by category** — reads each `error_00.txt` under `error_geometries/`, normalizes the message into a stable category (e.g. all "Volume fraction is …, which is too high" collapse into one), counts them, and documents what each error means. Most are normal, expected rejections that the generator simply retried. Unrecognized messages are listed separately so new failure modes surface instead of being hidden.
+* **Retry statistics** — derived from `generation_summary_*.json` when present (mean/max attempts per geometry, retries per group, the geometries that needed the most attempts), with a graceful fallback when no summary file exists.
+
+Two report files are written into the data directory (without overwriting previous ones): `validation_report.md` (human-readable, with tables) and `validation_report.json` (machine-readable). A short summary is also printed to the console.
+
+Useful options:
+
+```bash
+python validate_generation.py --data-dir <dir> --no-files   # print summary only, write nothing
+python validate_generation.py --data-dir <dir> -o <out>     # write reports elsewhere
+python validate_generation.py --help                        # all options (--top, etc.)
+```
+
 ### Support
 f.hendriks@tue.nl
 
