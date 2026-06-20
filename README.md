@@ -62,6 +62,22 @@ python generate_materials_in_parallel.py --group p1 --shape square --num-per-gro
 
 Use `python generate_materials_in_parallel.py --help` to see all available options, including output directory, figures, worker count, and verbose mode.
 
+### Expected runtime
+
+Running the **default configuration** (all 17 wallpaper groups × 60 geometries = **1020 geometries**, 6 worker processes) takes around **50–55 minutes** on a typical machine. As a reference, a full run measured **51 minutes 25 seconds** (≈ **3 seconds per geometry** on average).
+
+The cost is not uniform across groups: higher-symmetry groups need more retries per geometry (see the `attempt` field in the generated `generation_summary_*.json`), so they take noticeably longer than the simpler ones.
+
+| Group(s)                       | Approx. time for 60 geometries |
+| ------------------------------ | ------------------------------ |
+| p1, p2, pm, pg, cm             | ~1.5–2 min each                |
+| pmm, pmg, pgg, cmm             | ~2.5–3.5 min each              |
+| p4, p4m, p4g                   | ~3–4.5 min each                |
+| p3, p3m1, p31m                 | ~3.5 min each                  |
+| p6, p6m                        | ~3.5–5 min each                |
+
+Runtime scales roughly linearly with the number of geometries and inversely with the number of workers, so you can estimate smaller or larger runs accordingly. For a quick check, restrict the run (e.g. `--num-per-group 1 --max-workers 1`), which finishes in seconds.
+
 ### Support
 f.hendriks@tue.nl
 
